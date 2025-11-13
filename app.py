@@ -100,10 +100,11 @@ def create_show():
     
     title = data.get('title', '').strip()
     cover_image_url = data.get('cover_image_url', '').strip()
+    genre = data.get('genre', '').strip()
     is_ended = data.get('is_ended', False)
     
     # Validation
-    if not title or not cover_image_url:
+    if not title or not cover_image_url or not genre:
         return jsonify({'error': 'All fields are required'}), 400
     
     if not validate_https_url(cover_image_url):
@@ -125,8 +126,8 @@ def create_show():
     
     # Insert new show
     cursor.execute(
-        'INSERT INTO tv_shows (title, cover_image_url, is_ended, created_at) VALUES (?, ?, ?, ?)',
-        (title, cover_image_url, 1 if is_ended else 0, datetime.now().isoformat())
+        'INSERT INTO tv_shows (title, cover_image_url, genre, is_ended, created_at) VALUES (?, ?, ?, ?, ?)',
+        (title, cover_image_url, genre, 1 if is_ended else 0, datetime.now().isoformat())
     )
     conn.commit()
     show_id = cursor.lastrowid
@@ -141,10 +142,11 @@ def update_show(show_id):
     
     title = data.get('title', '').strip()
     cover_image_url = data.get('cover_image_url', '').strip()
+    genre = data.get('genre', '').strip()
     is_ended = data.get('is_ended', False)
     
     # Validation
-    if not title or not cover_image_url:
+    if not title or not cover_image_url or not genre:
         return jsonify({'error': 'All fields are required'}), 400
     
     if not validate_https_url(cover_image_url):
@@ -173,8 +175,8 @@ def update_show(show_id):
     
     # Update show
     cursor.execute(
-        'UPDATE tv_shows SET title = ?, cover_image_url = ?, is_ended = ? WHERE id = ?',
-        (title, cover_image_url, 1 if is_ended else 0, show_id)
+        'UPDATE tv_shows SET title = ?, cover_image_url = ?, genre = ?, is_ended = ? WHERE id = ?',
+        (title, cover_image_url, genre, 1 if is_ended else 0, show_id)
     )
     
     # Check if any row was updated
