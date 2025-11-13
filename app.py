@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import sqlite3
 from datetime import datetime
 import re
 import requests
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 DATABASE = 'library.db'
 OMDB_API_KEY = 'trilogy'  # Free API key for testing (or get your own at http://www.omdbapi.com/apikey.aspx)
@@ -76,6 +78,20 @@ def get_shows():
     conn.close()
     
     return jsonify([dict(row) for row in shows])
+
+@app.route('/api/shows/<int:show_id>', methods=['GET'])
+def get_show(show_id):
+    """Get a single TV show by ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM tv_shows WHERE id = ?', (show_id,))
+    show = cursor.fetchone()
+    conn.close()
+    
+    if show:
+        return jsonify(dict(show))
+    else:
+        return jsonify({'error': 'TV show not found'}), 404
 
 @app.route('/api/shows', methods=['POST'])
 def create_show():
@@ -160,6 +176,12 @@ def update_show(show_id):
         'UPDATE tv_shows SET title = ?, cover_image_url = ?, is_ended = ? WHERE id = ?',
         (title, cover_image_url, 1 if is_ended else 0, show_id)
     )
+    
+    # Check if any row was updated
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({'error': 'TV show not found'}), 404
+    
     conn.commit()
     conn.close()
     
@@ -170,6 +192,14 @@ def delete_show(show_id):
     """Delete a TV show"""
     conn = get_db()
     cursor = conn.cursor()
+    
+    # Check if show exists
+    cursor.execute('SELECT id FROM tv_shows WHERE id = ?', (show_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'TV show not found'}), 404
+    
+    # Delete the show
     cursor.execute('DELETE FROM tv_shows WHERE id = ?', (show_id,))
     conn.commit()
     conn.close()
