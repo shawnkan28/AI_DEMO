@@ -37,6 +37,10 @@ The creation modal should be a popup on the landing page with the following fiel
 - Cover Image URL must be a valid HTTPS URL (must start with https:// and follow standard URL format)
 - TV Show titles must be unique - check if title already exists before creation
 - Display an error message if user attempts to add a duplicate title
+- **IMDB Verification**: TV show title must exist in IMDB database before creation is allowed
+  - Uses OMDb API to verify show exists
+  - Only series/TV shows are accepted (not movies)
+  - Verification also applies when editing if the title is changed
 
 # Data Management
 ## Edit Functionality

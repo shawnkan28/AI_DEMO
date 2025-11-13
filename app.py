@@ -2,10 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import sqlite3
 from datetime import datetime
 import re
+import requests
 
 app = Flask(__name__)
 
 DATABASE = 'library.db'
+OMDB_API_KEY = 'trilogy'  # Free API key for testing (or get your own at http://www.omdbapi.com/apikey.aspx)
 
 def get_db():
     """Connect to the database"""
@@ -17,6 +19,28 @@ def validate_https_url(url):
     """Validate that URL starts with https:// and follows standard URL format"""
     pattern = r'^https://[^\s/$.?#].[^\s]*$'
     return re.match(pattern, url) is not None
+
+def verify_show_in_imdb(title):
+    """Verify if a TV show exists in IMDB via OMDb API"""
+    try:
+        # Search for the TV show in OMDb
+        url = f'http://www.omdbapi.com/?apikey={OMDB_API_KEY}&t={title}&type=series'
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        
+        # Check if the show was found
+        if data.get('Response') == 'True' and data.get('Type') == 'series':
+            return True, None
+        else:
+            error_msg = f"TV show '{title}' not found in IMDB. Please verify the title is correct."
+            return False, error_msg
+    except requests.exceptions.Timeout:
+        # If API times out, allow the creation (don't block user)
+        return True, None
+    except Exception as e:
+        # If any other error occurs, allow the creation
+        print(f"IMDB verification error: {e}")
+        return True, None
 
 @app.route('/')
 def index():
@@ -69,6 +93,11 @@ def create_show():
     if not validate_https_url(cover_image_url):
         return jsonify({'error': 'Cover image URL must be a valid HTTPS URL'}), 400
     
+    # Verify show exists in IMDB
+    is_valid, error_msg = verify_show_in_imdb(title)
+    if not is_valid:
+        return jsonify({'error': error_msg}), 400
+    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -107,6 +136,18 @@ def update_show(show_id):
     
     conn = get_db()
     cursor = conn.cursor()
+    
+    # Get the current title to see if it's being changed
+    cursor.execute('SELECT title FROM tv_shows WHERE id = ?', (show_id,))
+    result = cursor.fetchone()
+    if result:
+        current_title = result['title']
+        # Only verify IMDB if title is being changed
+        if current_title.lower() != title.lower():
+            is_valid, error_msg = verify_show_in_imdb(title)
+            if not is_valid:
+                conn.close()
+                return jsonify({'error': error_msg}), 400
     
     # Check for duplicate title (excluding current show)
     cursor.execute('SELECT id FROM tv_shows WHERE LOWER(title) = LOWER(?) AND id != ?', (title, show_id))
