@@ -204,10 +204,14 @@ function displayShows(shows) {
         inProgressSection.style.display = 'none';
         endedSection.style.display = 'none';
         emptyState.style.display = 'flex';
+        document.getElementById('featuredBanner').style.display = 'none';
         return;
     }
     
     emptyState.style.display = 'none';
+    
+    // Display featured banner with random show
+    displayFeaturedBanner(shows);
     
     // Render In Progress shows
     if (inProgressShows.length > 0) {
@@ -224,6 +228,43 @@ function displayShows(shows) {
     } else {
         endedSection.style.display = 'none';
     }
+}
+
+// Display featured banner
+function displayFeaturedBanner(shows) {
+    if (shows.length === 0) return;
+    
+    // Select a random show for featured banner
+    const featuredShow = shows[Math.floor(Math.random() * shows.length)];
+    
+    const banner = document.getElementById('featuredBanner');
+    const bannerGenre = document.getElementById('bannerGenre');
+    const bannerTitle = document.getElementById('bannerTitle');
+    const bannerMeta = document.getElementById('bannerMeta');
+    const bannerEditBtn = document.getElementById('bannerEditBtn');
+    
+    // Set banner background
+    banner.style.backgroundImage = `url('${featuredShow.cover_image_url}')`;
+    banner.style.display = 'block';
+    
+    // Set banner content
+    bannerGenre.innerHTML = `<i class="bi ${getGenreIcon(featuredShow.genre)}"></i> ${featuredShow.genre}`;
+    bannerTitle.textContent = featuredShow.title;
+    bannerMeta.innerHTML = `
+        <i class="bi bi-calendar3"></i>
+        Added ${formatDate(featuredShow.created_at)}
+        <span style="margin: 0 0.5rem;">•</span>
+        <span>${featuredShow.is_ended ? 'Ended' : 'In Progress'}</span>
+    `;
+    
+    // Set edit button click handler
+    bannerEditBtn.onclick = () => openEditModal(
+        featuredShow.id,
+        featuredShow.title,
+        featuredShow.cover_image_url,
+        featuredShow.genre,
+        featuredShow.is_ended
+    );
 }
 
 // Get genre icon based on genre name
@@ -249,7 +290,7 @@ function getGenreIcon(genre) {
 // Create show card HTML
 function createShowCard(show) {
     return `
-        <div class="show-card">
+        <div class="show-card" onclick="openEditModal(${show.id}, '${escapeHtml(show.title)}', '${escapeHtml(show.cover_image_url)}', '${escapeHtml(show.genre)}', ${show.is_ended})">
             <img src="${escapeHtml(show.cover_image_url)}" 
                  class="card-image" 
                  alt="${escapeHtml(show.title)}" 
@@ -268,13 +309,6 @@ function createShowCard(show) {
                             <i class="bi bi-calendar3"></i>
                             <span>${formatDate(show.created_at)}</span>
                         </div>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <div class="card-actions">
-                        <button class="btn btn-sm btn-primary" onclick="openEditModal(${show.id}, '${escapeHtml(show.title)}', '${escapeHtml(show.cover_image_url)}', '${escapeHtml(show.genre)}', ${show.is_ended})" title="Edit">
-                            <i class="bi bi-pencil"></i> Edit
-                        </button>
                     </div>
                 </div>
             </div>
